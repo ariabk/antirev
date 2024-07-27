@@ -66,7 +66,7 @@ pub fn new_session(conn: &mut PgConnection, uname: String, password: String) {
     }
 }
 
-pub fn create_post(conn: &mut PgConnection, title: String, post_type: PostType, content: String, session_id: Uuid) -> Post {
+pub fn create_post(conn: &mut PgConnection, title: String, post_type: PostType, content: String, session_id: Uuid) -> /* Post */ () {
     use crate::schema::posts;
     use schema::users::dsl::*;
 
