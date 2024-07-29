@@ -46,4 +46,3 @@ pub struct Post {
     pub post_type: PostType,
     pub content: String
 }
-
