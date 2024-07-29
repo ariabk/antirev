@@ -1,12 +1,11 @@
 use argon2::{password_hash::{rand_core::OsRng, SaltString}, PasswordHasher, PasswordVerifier, PasswordHash};
-use diesel::pg::PgConnection;
-use diesel::prelude::*;
+use diesel::{pg::PgConnection, prelude::*, insert_into, BelongingToDsl};
 use dotenvy::dotenv;
 use std::env;
 pub mod models;
 pub mod schema;
 use uuid::Uuid;
-use crate::models::*;
+use crate::models::{Post, User, NewUser};
 
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
@@ -17,8 +16,8 @@ pub fn establish_connection() -> PgConnection {
 }
 
 pub fn create_account(conn: &mut PgConnection, uname: String, password: String) -> Option<User> {
-    use crate::schema::users;
-    use self::schema::users::dsl::*;
+    use schema::users;
+    use schema::users::dsl::*;
 
     let salt=SaltString::generate(OsRng);
     let argon2=argon2::Argon2::default();
@@ -27,7 +26,7 @@ pub fn create_account(conn: &mut PgConnection, uname: String, password: String) 
     if users.filter(username.eq(uname.clone())).limit(1).get_result::<(i32, String, String, uuid::Uuid)>(conn).is_ok() { return None; }
     let new_user = NewUser { username: uname, hash: hsh.to_string() };
 
-    Some(diesel::insert_into(users::table)
+    Some(diesel::insert_into(users)
 	.values(&new_user)
 	.returning(User::as_returning())
 	.get_result(conn)
@@ -35,10 +34,10 @@ pub fn create_account(conn: &mut PgConnection, uname: String, password: String) 
 }
 
 pub fn verify_password(conn: &mut PgConnection, uname: String, password: String) -> bool {
-    use self::schema::users::dsl::*;
+    use schema::users::dsl::*;
     
-    let user=users.filter(username.eq(uname));
-    let hsh: Vec<String> = user
+    let hsh: Vec<String> = users
+	.filter(username.eq(uname))
 	.select(hash)
 	.load(conn)
 	.expect("Error getting password hash");
@@ -48,11 +47,24 @@ pub fn verify_password(conn: &mut PgConnection, uname: String, password: String)
     argon2.verify_password(password.as_bytes(), &hsh_argn.unwrap()).is_ok()
 }
 
+fn delete_posts_for_user(conn: &mut PgConnection, user: &User) -> QueryResult<usize> {
+    use schema::posts::dsl::*;
+
+    diesel::delete(Post::belonging_to(user))
+        .execute(conn)
+}
+
 pub fn delete_account(conn: &mut PgConnection, uname: String, password: String) {
-    use self::schema::users::dsl::*;
+    use schema::users;
+    use schema::posts;
+    use schema::users::dsl::*;
+    use schema::posts::dsl::*;
 
     if verify_password(conn, uname.clone(), password) {
-	diesel::delete(users.filter(username.eq(uname)))
+	let user_record = users.filter(username.eq(uname.clone()));
+	let user: User = users.filter(username.eq(uname)).first::<User>(conn).expect("Error fetching user");
+	delete_posts_for_user(conn, &user);
+	diesel::delete(user_record)
 	    .execute(conn)
 	    .expect("Error deleting account");
     }
@@ -66,11 +78,23 @@ pub fn new_session(conn: &mut PgConnection, uname: String, password: String) {
     }
 }
 
-pub fn create_post(conn: &mut PgConnection, title: String, post_type: PostType, content: String, session_id: Uuid) -> /* Post */ () {
-    use crate::schema::posts;
+pub fn create_post(conn: &mut PgConnection, ttl: String, pst_typ: PostType, cntnt: String, seshn_id: Uuid) -> Post {
+    use schema::users;
+    use schema::posts;
     use schema::users::dsl::*;
+    use schema::posts::dsl::*;
 
-    
+    let usr_id: i32 = users
+	.filter(session_id.eq(seshn_id))
+	.select(schema::users::dsl::id)
+	.first(conn)
+	.expect("Error getting user_id");
+
+    insert_into(posts)
+	.values((user_id.eq(usr_id), title.eq(ttl), post_type.eq(pst_typ), content.eq(cntnt)))
+	.returning(Post::as_returning())
+	.get_result(conn)
+	.expect("Error creating post")
 }
 
 #[cfg(test)]
@@ -84,5 +108,12 @@ mod tests {
 	assert!(!verify_password(conn, "username".to_string(), "password125".to_string()), "incorrect password allowed");
 	assert!(verify_password(conn, "username".to_string(), "password123".to_string()), "correct password dissalowed");
 	delete_account(conn, "username".to_string(), "password123".to_string());
+    }
+    #[test]
+    fn post_creation() {
+	let conn = &mut establish_connection();
+
+	let account = create_account(conn, "username".to_string(), "password123".to_string());
+	create_post(conn, "Hello, world".to_string(), PostType::Text, "Hello, world!".to_string(), account.unwrap().session_id);
     }
 }

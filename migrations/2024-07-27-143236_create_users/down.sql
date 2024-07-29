@@ -1,2 +1,1 @@
-DROP EXTENSION IF EXISTS "uuid-ossp";
-DROP TABLE users
+DROP TABLE users; DROP EXTENSION IF EXISTS "uuid-ossp";

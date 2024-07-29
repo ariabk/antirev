@@ -1,1 +1,1 @@
-DROP TABLE posts; DROP TYPE posttype;
+DROP TABLE posts; DROP TYPE post_type;

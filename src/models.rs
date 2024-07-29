@@ -2,7 +2,19 @@ use diesel::prelude::*;
 use crate::schema::*;
 use uuid::Uuid;
 
-#[derive(Debug, PartialEq)]
+use diesel::deserialize::{self, FromSql};
+use diesel::serialize::{self, ToSql, Output, IsNull};
+use diesel::pg::Pg;
+use diesel::sql_types::Integer;
+use std::io::Write;
+use diesel::{AsExpression, FromSqlRow, QueryId};
+use diesel::backend::Backend;
+use diesel::query_builder::{QueryFragment, AstPass};
+use diesel_derive_enum::DbEnum;
+use diesel::SqlType;
+
+#[derive(diesel_derive_enum::DbEnum, Debug, PartialEq)]
+#[ExistingTypePath = "crate::schema::sql_types::PostType"]
 pub enum PostType {
     Url,
     Text,
@@ -26,7 +38,7 @@ pub struct NewUser {
 }
 
 #[derive(Queryable, Selectable, Identifiable, Associations, Debug, PartialEq)]
-#[diesel(belongs_to(User))]
+#[diesel(belongs_to(User, foreign_key=user_id))]
 #[diesel(table_name = posts)]
 pub struct Post {
     pub id: i32,
