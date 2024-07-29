@@ -20,7 +20,7 @@ pub enum PostType {
     Text,
 }
 
-#[derive(Identifiable, Queryable, PartialEq, Debug)]
+#[derive(Identifiable, Selectable, Queryable, PartialEq, Debug)]
 #[diesel(table_name = users)]
 pub struct User {
     pub id: i32,
