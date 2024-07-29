@@ -16,7 +16,7 @@ pub fn establish_connection() -> PgConnection {
 }
 
 pub fn create_account(conn: &mut PgConnection, uname: String, password: String) -> Option<User> {
-    use schema::users;
+    
     use schema::users::dsl::*;
 
     let salt=SaltString::generate(OsRng);
@@ -48,17 +48,12 @@ pub fn verify_password(conn: &mut PgConnection, uname: String, password: String)
 }
 
 fn delete_posts_for_user(conn: &mut PgConnection, user: &User) -> QueryResult<usize> {
-    use schema::posts::dsl::*;
-
     diesel::delete(Post::belonging_to(user))
-        .execute(conn)
+        .execute(conn);
 }
 
 pub fn delete_account(conn: &mut PgConnection, uname: String, password: String) {
-    use schema::users;
-    use schema::posts;
     use schema::users::dsl::*;
-    use schema::posts::dsl::*;
 
     if verify_password(conn, uname.clone(), password) {
 	let user_record = users.filter(username.eq(uname.clone()));
@@ -79,8 +74,8 @@ pub fn new_session(conn: &mut PgConnection, uname: String, password: String) {
 }
 
 pub fn create_post(conn: &mut PgConnection, ttl: String, pst_typ: PostType, cntnt: String, seshn_id: Uuid) -> Post {
-    use schema::users;
-    use schema::posts;
+    
+    
     use schema::users::dsl::*;
     use schema::posts::dsl::*;
 
