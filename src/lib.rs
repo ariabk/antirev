@@ -47,7 +47,7 @@ pub fn verify_password(conn: &mut PgConnection, uname: String, password: String)
     argon2.verify_password(password.as_bytes(), &hsh_argn.unwrap()).is_ok()
 }
 
-fn delete_posts_for_user(conn: &mut PgConnection, user: &User) -> QueryResult<usize> {
+fn delete_posts_for_user(conn: &mut PgConnection, user: &User) {
     diesel::delete(Post::belonging_to(user))
         .execute(conn);
 }
