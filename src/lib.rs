@@ -16,7 +16,6 @@ pub fn establish_connection() -> PgConnection {
 }
 
 pub fn create_account(conn: &mut PgConnection, uname: String, password: String) -> Option<User> {
-    
     use schema::users::dsl::*;
 
     let salt=SaltString::generate(OsRng);
@@ -64,17 +63,17 @@ pub fn delete_account(conn: &mut PgConnection, uname: String, password: String) 
     }
 }
 
-pub fn new_session(conn: &mut PgConnection, uname: String, password: String) {
+pub fn new_session(conn: &mut PgConnection, uname: String, password: String) -> Uuid {
     use schema::users::dsl::*;
     
+    let seshn = Uuid::new_v4();
     if verify_password(conn, uname.clone(), password) {
-	let _ = diesel::update(users).filter(username.eq(uname)).set(session_id.eq(Uuid::new_v4())).execute(conn);
+	let _ = diesel::update(users).filter(username.eq(uname)).set(session_id.eq(seshn)).execute(conn);
     }
+    seshn
 }
 
 pub fn create_post(conn: &mut PgConnection, ttl: String, pst_typ: PostType, cntnt: String, seshn_id: Uuid) -> Post {
-    
-    
     use schema::users::dsl::*;
     use schema::posts::dsl::*;
 
@@ -98,7 +97,7 @@ mod tests {
     fn account_creation_verification_deletion() {
 	let conn = &mut establish_connection();
 	
-	dbg!(create_account(conn, "username".to_string(), "password123".to_string()).unwrap());
+	dbg!(create_account(conn, "username".to_string(), "password123".to_string()).unwrap_or_else(|| panic!("Username already exists.")));
 	assert!(!verify_password(conn, "username".to_string(), "password125".to_string()), "incorrect password allowed");
 	assert!(verify_password(conn, "username".to_string(), "password123".to_string()), "correct password dissalowed");
 	delete_account(conn, "username".to_string(), "password123".to_string());
@@ -107,7 +106,8 @@ mod tests {
     fn post_creation() {
 	let conn = &mut establish_connection();
 
-	let account = create_account(conn, "username".to_string(), "password123".to_string());
-	create_post(conn, "Hello, world".to_string(), PostType::Text, "Hello, world!".to_string(), account.unwrap().session_id);
+	let account = create_account(conn, "username".to_string(), "password123".to_string()).unwrap_or_else(|| panic!("Username already exists."));
+	create_post(conn, "Hello, world".to_string(), PostType::Text, "Hello, world!".to_string(), account.session_id);
+	delete_account(conn, "username".to_string(), "password123".to_string());
     }
 }
