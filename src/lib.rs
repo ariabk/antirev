@@ -5,7 +5,7 @@ use std::env;
 pub mod models;
 pub mod schema;
 use uuid::Uuid;
-use crate::models::{Post, User, NewUser};
+use crate::models::{Post, User, NewUser, PostType};
 
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
