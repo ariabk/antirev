@@ -20,9 +20,8 @@ pub enum PostType {
     Text,
 }
 
-#[derive(Queryable, Selectable, Debug)]
+#[derive(Identifiable, Queryable, PartialEq, Debug)]
 #[diesel(table_name = users)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct User {
     pub id: i32,
     pub username: String,
@@ -38,7 +37,7 @@ pub struct NewUser {
 }
 
 #[derive(Queryable, Selectable, Identifiable, Associations, Debug, PartialEq)]
-#[diesel(belongs_to(User, foreign_key=user_id))]
+#[diesel(belongs_to(User))]
 #[diesel(table_name = posts)]
 pub struct Post {
     pub id: i32,
