@@ -48,8 +48,7 @@ pub fn verify_password(conn: &mut PgConnection, uname: String, password: String)
 }
 
 fn delete_posts_for_user(conn: &mut PgConnection, user: &User) {
-    diesel::delete(Post::belonging_to(user))
-        .execute(conn);
+    let _ = diesel::delete(Post::belonging_to(user)).execute(conn);
 }
 
 pub fn delete_account(conn: &mut PgConnection, uname: String, password: String) {
