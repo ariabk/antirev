@@ -1,9 +1,8 @@
 use diesel::prelude::*;
-use crate::schema::*;
+use crate::schema::{posts, users};
 use uuid::Uuid;
 
-
-#[derive(diesel_derive_enum::DbEnum, Debug, PartialEq)]
+#[derive(diesel_derive_enum::DbEnum, Debug, PartialEq, serde::Deserialize, Clone)]
 #[ExistingTypePath = "crate::schema::sql_types::PostType"]
 pub enum PostType {
     Url,

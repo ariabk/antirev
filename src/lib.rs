@@ -12,7 +12,7 @@ pub fn establish_connection() -> PgConnection {
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     PgConnection::establish(&database_url)
-        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
+        .unwrap_or_else(|_| panic!("Error connecting to {database_url}"))
 }
 
 pub fn create_account(conn: &mut PgConnection, uname: String, password: String) -> Option<User> {
@@ -63,14 +63,15 @@ pub fn delete_account(conn: &mut PgConnection, uname: String, password: String) 
     }
 }
 
-pub fn new_session(conn: &mut PgConnection, uname: String, password: String) -> Uuid {
+pub fn new_session(conn: &mut PgConnection, uname: String, password: String) -> (Uuid, bool) {
     use schema::users::dsl::*;
-    
+    let mut correct = false;
     let seshn = Uuid::new_v4();
     if verify_password(conn, uname.clone(), password) {
+	correct = true;
 	let _ = diesel::update(users).filter(username.eq(uname)).set(session_id.eq(seshn)).execute(conn);
     }
-    seshn
+    (seshn, correct)
 }
 
 pub fn create_post(conn: &mut PgConnection, ttl: String, pst_typ: PostType, cntnt: String, seshn_id: Uuid) -> Post {
@@ -88,6 +89,15 @@ pub fn create_post(conn: &mut PgConnection, ttl: String, pst_typ: PostType, cntn
 	.returning(Post::as_returning())
 	.get_result(conn)
 	.expect("Error creating post")
+}
+
+pub fn get_posts(conn: &mut PgConnection) -> Vec<Post> {
+    use schema::posts::dsl::*;
+    
+    posts
+        .select(Post::as_select())
+        .load(conn)
+        .expect("Error loading posts")
 }
 
 #[cfg(test)]
