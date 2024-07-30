@@ -4,16 +4,21 @@
     <link rel="stylesheet" href="output.css">
   </head>
   <body>
-    <div class="bg-gray-600"></div>
+    <div class="bg-gray-600 text-white flex justify-end gap-4 p-4">
+      {% if signed_in %}
+          <a href="/post" class="hover:underline">Post</a> <form action="/signout" method="post"><input class="hover:underline hover:cursor-pointer" type="submit" value="Sign Out"></form>
+      {% else %}
+          <a href="/signup" class="hover:underline">Sign Up</a> <a href="/signin" class="hover:underline">Sign In</a>
+      {% endif %}
+    </div>
     {% for post in posts %}
     <li class="list-none text-white bg-gray-600 my-4">
       <strong>{{ post.title }}</strong><br>
-      {% match post.post_type %}
-        {% when Url %}
-          <a href="{{ post.content }}">{{ post.content }}</a>
-        {% when Text %}
-          {{ post.content }}
-      {% endmatch %}
+      {% if post.post_type == PostType::Url %}
+          <a href="{{ post.content }}" class="underline py-10px">{{ post.content }}</a>
+      {% else %}
+          <p>{{ post.content }}</p>
+      {% endif %}
     </li>
     {% endfor %}
   </body>

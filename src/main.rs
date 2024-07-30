@@ -23,7 +23,8 @@ struct PostForm {
 #[derive(Template)]
 #[template(path="feed.html")]
 struct FeedTemplate {
-    posts: Vec<Post>
+    posts: Vec<Post>,
+    signed_in: bool
 }
 
 #[post("/signup")]
@@ -81,10 +82,26 @@ async fn post_get() -> impl Responder {
 }
 
 #[get("/feed")]
-async fn feed() -> impl Responder {
+async fn feed(req: HttpRequest) -> impl Responder {
     let conn = &mut establish_connection();
 
-    FeedTemplate { posts: get_posts(conn) }
+    FeedTemplate { posts: get_posts(conn), signed_in: req.cookie("session_id").is_some() }
+}
+
+#[post("/signout")]
+async fn signout(req: HttpRequest) -> impl Responder {
+    if let Some(mut session_id) = req.cookie("session_id") {
+	session_id.make_removal();
+	return HttpResponse::SeeOther()
+	    .append_header(("Location", "/feed"))
+	    .cookie(session_id)
+	    .finish();
+    } else {
+	return HttpResponse::BadRequest()
+	    .append_header(("Content-Type", "text/plain"))
+	    .body("Hey, man. You're not signed in. You can't do that! You can't sign out :,(");
+    }
+	
 }
 
 #[get("/")]
@@ -114,6 +131,7 @@ async fn main() -> std::io::Result<()> {
 	    .service(signin_get)
 	    .service(post_get)
 	    .service(post_post)
+	    .service(signout)
 	    .service(feed)
 	    .service(index)
     })

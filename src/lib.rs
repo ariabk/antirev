@@ -100,6 +100,15 @@ pub fn get_posts(conn: &mut PgConnection) -> Vec<Post> {
         .expect("Error loading posts")
 }
 
+pub fn get_user_from_session(conn: &mut PgConnection, sesh: Uuid) -> User {
+    use schema::users::dsl::*;
+
+    users
+	.filter(session_id.eq(sesh))
+	.first(conn)
+	.expect("Error loading user")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
